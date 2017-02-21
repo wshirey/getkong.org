@@ -14,10 +14,12 @@ nav:
     items:
       - label: Create a Consumer
       - label: Create a JWT credential
-      - label: Craft a JWT
+      - label: Craft a JWT with a secret (HS256)
       - label: Send a request with the JWT
       - label: (Optional) Verified claims
       - label: (Optional) Base64 encoded secret
+      - label: Craft a JWT with public/private keys (RS256)
+      - label: Generate public/private keys
       - label: Upstream Headers
 ---
 
@@ -45,13 +47,15 @@ $ curl -X POST http://kong:8001/apis/{api}/plugins \
 
 `api`: The `id` or `name` of the API that this plugin configuration will target
 
-form parameter            | required     | description
----                       | ---          | ---
-`name`                    | *required*   | The name of the plugin to use, in this case: `jwt`
-`config.uri_param_names`  | *optional*   | A list of querystring parameters that Kong will inspect to retrieve JWTs. Defaults to `jwt`.
-`config.claims_to_verify` | *optional*   | A list of registered claims (according to [RFC 7519][rfc-jwt]) that Kong can verify as well. Accepted values: `exp`, `nbf`.
-`config.key_claim_name`   | *optional*   | The name of the claim in which the `key` identifying the secret **must** be passed. Defaults to `iss`.
-`config.secret_is_base64` | *optional*   | If true, the plugin assumes the credential's `secret` to be base64 encoded. You will need to create a base64 encoded secret for your consumer, and sign your JWT with the original secret. Defaults to `false`.
+You can also apply it for every API using the `http://kong:8001/plugins/` endpoint. Read the [Plugin Reference](/docs/latest/admin-api/#add-plugin) for more information.
+
+form parameter                          | default  | description
+---                                     | ---      | ---
+`name`                                  |          | The name of the plugin to use, in this case: `jwt`
+`config.uri_param_names`<br>*optional*  | `jwt`    | A list of querystring parameters that Kong will inspect to retrieve JWTs.
+`config.claims_to_verify`<br>*optional* |          | A list of registered claims (according to [RFC 7519][rfc-jwt]) that Kong can verify as well. Accepted values: `exp`, `nbf`.
+`config.key_claim_name`<br>*optional*   | `iss`    | The name of the claim in which the `key` identifying the secret **must** be passed.
+`config.secret_is_base64`<br>*optional* | `false` | If true, the plugin assumes the credential's `secret` to be base64 encoded. You will need to create a base64 encoded secret for your Consumer, and sign your JWT with the original secret.
 
 ----
 
@@ -64,16 +68,16 @@ In order to use the plugin, you first need to create a Consumer and associate on
 You need to associate a credential to an existing [Consumer][consumer-object] object. The Consumer is an entity consuming the API. To create a [Consumer][consumer-object] you can execute the following request:
 
 ```bash
-$ curl http://kong:8001/consumers \
+$ curl -X POST http://kong:8001/consumers \
     --data "username=<USERNAME>" \
     --data "custom_id=<CUSTOM_ID>"
 HTTP/1.1 201 Created
 ```
 
-form parameter | required        | description
----            | ---             | ---
-`username`     | *semi-optional* | The username for this Consumer. Either this field or `custom_id` must be specified.
-`custom_id`    | *semi-optional* | A custom identifier used to map the Consumer to an external database. Either this field or `username` must be specified.
+form parameter                  | default | description
+---                             | ---     | ---
+`username`<br>*semi-optional*   |         | The username for this Consumer. Either this field or `custom_id` must be specified.
+`custom_id`<br>*semi-optional*  |         | A custom identifier used to map the Consumer to an external database. Either this field or `username` must be specified.
 
 A [Consumer][consumer-object] can have many JWT credentials.
 
@@ -94,20 +98,20 @@ HTTP/1.1 201 Created
 }
 ```
 
-`consumer`: The `id` or `username` property of the [consumer][consumer-object] entity to associate the credentials to.
+`consumer`: The `id` or `username` property of the [Consumer][consumer-object] entity to associate the credentials to.
 
-form parameter   | required        | description
----              | ---             | ---
-`key`            | *optional*      | A unique string identifying the credential. If left out, it will be auto-generated. However, usage of this key is **mandatory** while crafting your token, as specified in the next section.
-`algorithm`      | *optional*      | The algorithm used to verify the token's signature. Can be `HS256` or `RS256`. Defaults to `HS256`.
-`rsa_public_key` | *optional*      | If `algorithm` is `RS256`, the public key (in PEM format) to use to verify the token's signature.
-`secret`         | *optional*      | If `algorithm` is `HS256`, the secret used to sign JWTs for this credential. If left out, will be auto-generated.
+form parameter                 | default         | description
+---                            | ---             | ---
+`key`<br>*optional*            |                 | A unique string identifying the credential. If left out, it will be auto-generated.
+`algorithm`<br>*optional*      | `HS256`         | The algorithm used to verify the token's signature. Can be `HS256` or `RS256`.
+`rsa_public_key`<br>*optional* |                 | If `algorithm` is `RS256`, the public key (in PEM format) to use to verify the token's signature.
+`secret`<br>*optional*         |                 | If `algorithm` is `HS256`, the secret used to sign JWTs for this credential. If left out, will be auto-generated.
 
-### Craft a JWT
+### Craft a JWT with a secret (HS256)
 
 Now that your Consumer has a credential, and assuming we want to sign it using `HS256`, the JWT should be crafted as follows (according to [RFC 7519][rfc-jwt]):
 
-First, the header must be:
+First, its header must be:
 
 ```json
 {
@@ -116,7 +120,7 @@ First, the header must be:
 }
 ```
 
-Secondly, the claims **must** contain the secret's `key` in the configured claim (from `config.key_claim_name`). That claim is `iss` (issuer field field) by default. Set its value to our previously created credential's `key`. The claims may contain other values.
+Secondly, the claims **must** contain the secret's `key` in the configured claim (from `config.key_claim_name`). That claim is `iss` (issuer field) by default. Set its value to our previously created credential's `key`. The claims may contain other values.
 
 ```json
 {
@@ -124,7 +128,7 @@ Secondly, the claims **must** contain the secret's `key` in the configured claim
 }
 ```
 
-Since the `secret` associated with this `key` is `e71829c351aa4242c2719cbfbe671c09`, the final JWT is:
+Using the JWT debugger at https://jwt.io with the header (HS256), claims (iss, etc), and `secret` associated with this `key` (e71829c351aa4242c2719cbfbe671c09), you'll end up with a JWT token of:
 
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMzZjMzA0OWIzNjI0OWEzYzlmODg5MWNiMTI3MjQzYyIsImV4cCI6MTQ0MjQzMDA1NCwibmJmIjoxNDQyNDI2NDU0LCJpYXQiOjE0NDI0MjY0NTR9.AhumfY35GFLuEEjrOXiaADo7Ae6gt_8VLwX7qffhQN4
@@ -156,7 +160,7 @@ valid signature                | yes                      | from the upstream se
 valid signature, invalid verified claim (**option**) | no                       | 403
 
 <div class="alert alert-warning">
-  <strong>Note:</strong> When the JWT is valid and proxied to the API, Kong makes no modification to the request other than adding headers identifying the Consumer. It is the role of your service to now base64 decode the JWT claims, since it is considered valid.
+  <strong>Note:</strong> When the JWT is valid and proxied to the API, Kong makes no modification to the request other than adding headers identifying the Consumer. The JWT will be forwarded to your upstream service, which can assume its validity. It is now the role of your service to base64 decode the JWT claims and make use of them.
 </div>
 
 ### (**Optional**) Verified claims
@@ -195,15 +199,73 @@ $ curl -X POST http://kong:8001/consumers/{consumer}/jwt \
 
 And sign your JWT using the original secret ("blob data").
 
+### Craft a JWT with public/private keys (RS256)
+
+If you wish to use RS256 to verify your JWTs, then when creating a JWT credential, select `RS256` as the `algorithm`, and explicitly upload the public key in the `rsa_public_key` field. For example:
+
+```bash
+$ curl -X POST http://kong:8001/consumers/{consumer}/jwt \
+      -F "rsa_public_key=@/path/to/public_key.pem" \
+HTTP/1.1 201 Created
+
+{
+    "consumer_id": "7bce93e1-0a90-489c-c887-d385545f8f4b",
+    "created_at": 1442426001000,
+    "id": "bcbfb45d-e391-42bf-c2ed-94e32946753a",
+    "key": "a36c3049b36249a3c9f8891cb127243c",
+    "rsa_public_key": "-----BEGIN PUBLIC KEY----- ..."
+}
+```
+
+When creating the signature, make sure that the header is:
+
+```json
+{
+    "typ": "JWT",
+    "alg": "RS256"
+}
+```
+
+Secondly, the claims **must** contain the secret's `key` field (this **isn't** your private key used to generate the token, but just an identifier for this credential) in the configured claim (from `config.key_claim_name`). That claim is `iss` (issuer field) by default. Set its value to our previously created credential's `key`. The claims may contain other values.
+
+```json
+{
+    "iss": "a36c3049b36249a3c9f8891cb127243c"
+}
+```
+
+Then create the signature using your private keys. Using the JWT debugger at https://jwt.io, set the right header (RS256), the claims (iss, etc), and the associated public key. Then append the resulting value in the `Authorization` header, for example:
+
+```bash
+$ curl http://kong:8000/{api path} \
+    -H 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIxM2Q1ODE0NTcyZTc0YTIyYjFhOWEwMDJmMmQxN2MzNyJ9.uNPTnDZXVShFYUSiii78Q-IAfhnc2ExjarZr_WVhGrHHBLweOBJxGJlAKZQEKE4rVd7D6hCtWSkvAAOu7BU34OnlxtQqB8ArGX58xhpIqHtFUkj882JQ9QD6_v2S2Ad-EmEx5402ge71VWEJ0-jyH2WvfxZ_pD90n5AG5rAbYNAIlm2Ew78q4w4GVSivpletUhcv31-U3GROsa7dl8rYMqx6gyo9oIIDcGoMh3bu8su5kQc5SQBFp1CcA5H8sHGfYs-Et5rCU2A6yKbyXtpHrd1Y9oMrZpEfQdgpLae0AfWRf6JutA9SPhst9-5rn4o3cdUmto_TBGqHsFmVyob8VQ'
+```
+
+### Generate public/private keys
+
+To create a brand new pair of public/private keys, you can run the following command:
+
+```bash
+$ openssl genrsa -out private.pem 2048
+```
+
+This private key must be kept secret. To generate a public key corresponding to the private key, execute:
+
+```bash
+$ openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+```
+
+If you run the commands above, the public key will be written in `public.pem`, while the private key will be written in `private.pem`.
+
 ### Upstream Headers
 
-When a JWT is valid, a consumer has been authenticated, the plugin will append some headers to the request before proxying it to the upstream API/service, so that you can identify the consumer in your code:
+When a JWT is valid, a Consumer has been authenticated, the plugin will append some headers to the request before proxying it to the upstream API/service, so that you can identify the Consumer in your code:
 
 * `X-Consumer-ID`, the ID of the Consumer on Kong
 * `X-Consumer-Custom-ID`, the `custom_id` of the Consumer (if set)
 * `X-Consumer-Username`, the `username` of the Consumer (if set)
 
-You can use this information on your side to implement additional logic. You can use the `X-Consumer-ID` value to query the Kong Admin API and retrieve more information about the consumer.
+You can use this information on your side to implement additional logic. You can use the `X-Consumer-ID` value to query the Kong Admin API and retrieve more information about the Consumer.
 
 [rfc-jwt]: https://tools.ietf.org/html/rfc7519
 [api-object]: /docs/latest/admin-api/#api-object

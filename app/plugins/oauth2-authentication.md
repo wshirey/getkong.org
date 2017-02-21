@@ -34,11 +34,14 @@ Configuring the plugin is straightforward, you can add it on top of an [API][api
 ```bash
 $ curl -X POST http://kong:8001/apis/{api}/plugins \
     --data "name=oauth2" \
+    --data "config.enable_authorization_code=true" \
     --data "config.scopes=email,phone,address" \
     --data "config.mandatory_scope=true"
 ```
 
-`api`: The `id` or `name` of the API that this plugin configuration will target
+`api`: The `id` or `name` of the API that this plugin configuration will target.
+
+You can also apply it for every API using the `http://kong:8001/plugins/` endpoint. Read the [Plugin Reference](/docs/latest/admin-api/#add-plugin) for more information.
 
 form parameter                                    | default | description
 ---                                               | ---     | ---
@@ -46,7 +49,7 @@ form parameter                                    | default | description
 `config.scopes`                                    |      | Describes an array of comma separated scope names that will be available to the end user
 `config.mandatory_scope`<br>*optional*             | `false` | An optional boolean value telling the plugin to require at least one scope to be authorized by the end user
 `config.token_expiration`<br>*optional*            | `7200`  | An optional integer value telling the plugin how long should a token last, after which the client will need to refresh the token. Set to `0` to disable the expiration.
-`config.enable_authorization_code`<br>*optional*   | `true`  | An optional boolean value to enable the three-legged Authorization Code flow ([RFC 6742 Section 4.1][authorization-code-grant])
+`config.enable_authorization_code`<br>*optional*   | `false`  | An optional boolean value to enable the three-legged Authorization Code flow ([RFC 6742 Section 4.1][authorization-code-grant])
 `config.enable_client_credentials`<br>*optional*   | `false` | An optional boolean value to enable the Client Credentials Grant flow ([RFC 6742 Section 4.4][client-credentials])
 `config.enable_implicit_grant`<br>*optional*       | `false` | An optional boolean value to enable the Implicit Grant flow which allows to provision a token as a result of the authorization process ([RFC 6742 Section 4.2][implicit-grant])
 `config.enable_password_grant`<br>*optional*       | `false` | An optional boolean value to enable the Resource Owner Password Credentials Grant flow ([RFC 6742 Section 4.3][password-grant])
@@ -65,10 +68,10 @@ By default the OAuth 2.0 plugin listens on the following endpoints when consumin
 
 Endpoint                     | description
 ---                         | ---
-`/oauth2/authorize`          | The endpoint to the Authorization Server that provisions authorization codes for the [Authorization Code][authorization-code-grant] flow, or the access token when the [Implicit Grant][implicit-grant] flow is enabled.
-`/oauth2/token`              | The endpoint to the Authorization Server that provision access tokens. This is also the only endpoint to use for the [Client Credentials][client-credentials] and [Resource Owner Password Credentials Grant][password-grant] flows.
+`/oauth2/authorize`          | The endpoint to the Authorization Server that provisions authorization codes for the [Authorization Code][authorization-code-grant] flow, or the access token when the [Implicit Grant][implicit-grant] flow is enabled. Only `POST` is supported.
+`/oauth2/token`              | The endpoint to the Authorization Server that provision access tokens. This is also the only endpoint to use for the [Client Credentials][client-credentials] and [Resource Owner Password Credentials Grant][password-grant] flows. Only `POST` is supported.
 
-The clients trying to authorize and request access tokens must use these endpoints.
+The clients trying to authorize and request access tokens must use these endpoints. Remember that the endpoints above must be combined with the right URI path or headers that you normally use when consuming the root `/` endpoint of the API through Kong.
 
 ### Create a Consumer
 
@@ -80,10 +83,10 @@ $ curl -X POST http://kong:8001/consumers/ \
     --data "custom_id=SOME_CUSTOM_ID"
 ```
 
-parameter                       | required                                            | description
----                             | ---                                                 | ---
-`username`<br>*semi-optional*   | Either this field or `custom_id` must be specified. | The username of the consumer.
-`custom_id`<br>*semi-optional*  | Either this field or `username` must be specified.  | A custom identifier used to map the consumer to another database.
+parameter                       | default | description
+---                             | ---     | ---
+`username`<br>*semi-optional*   |         | The username of the consumer. Either this field or `custom_id` must be specified.
+`custom_id`<br>*semi-optional*  |         | A custom identifier used to map the consumer to another database. Either this field or `username` must be specified.
 
 A [Consumer][consumer-object] can have many credentials.
 
@@ -101,16 +104,16 @@ $ curl -X POST http://kong:8001/consumers/{consumer_id}/oauth2 \
 
 `consumer_id`: The [Consumer][consumer-object] entity to associate the credentials to
 
-form parameter                | description
----                           | ---
-`name`                        | The name to associate to the credential. In OAuth 2.0 this would be the application name.
-`client_id`<br>*optional*     | You can optionally set your own unique `client_id`. If missing, the plugin will generate one.
-`client_secret`<br>*optional* | You can optionally set your own unique `client_secret`. If missing, the plugin will generate one.
-`redirect_uri`                | The URL in your app where users will be sent after authorization ([RFC 6742 Section 3.1.2][redirect-uri])
+form parameter                | default | description
+---                           | ---     | ---
+`name`                        |         | The name to associate to the credential. In OAuth 2.0 this would be the application name.
+`client_id`<br>*optional*     |         | You can optionally set your own unique `client_id`. If missing, the plugin will generate one.
+`client_secret`<br>*optional* |         | You can optionally set your own unique `client_secret`. If missing, the plugin will generate one.
+`redirect_uri`                |         | The URL in your app where users will be sent after authorization ([RFC 6742 Section 3.1.2][redirect-uri])
 
 ## Migrating Access Tokens
 
-If you are migrating you existing OAuth 2.0 applications and access tokens over to Kong, then you can:
+If you are migrating your existing OAuth 2.0 applications and access tokens over to Kong, then you can:
 
 * Migrate consumers and applications by creating OAuth 2.0 applications as explained above.
 * Migrate access tokens using the `/oauth2_tokens` endpoints in the Kong's Admin API. For example:
@@ -124,15 +127,15 @@ $ curl -X POST http://kong:8001/oauth2_tokens \
     --data "expires_in=3600"
 ```
 
-form parameter                        | description
----                                   | ---
-`credential_id`                       | The ID of the OAuth 2.0 application created on Kong.
-`token_type`                          | The [token type][token-types]. By default is `bearer`.
-`access_token`<br>*optional*          | You can optionally set your own access token value, otherwise a random string will be generated.
-`refresh_token`<br>*optional*         | You can optionally set your own refresh token value, otherwise a random string will be generated.
-`expires_in`                          | The expiration time (in seconds) of the access token.
-`scope`<br>*optional*                 | The authorized scope associated with the token.
-`authenticated_userid`<br>*optional*  | The custom ID of the user who authorized the application.
+form parameter                        | default | description
+---                                   | ---     | ---
+`credential_id`                       |         | The ID of the OAuth 2.0 application created on Kong.
+`token_type`<br>*optional*            | `bearer`| The [token type][token-types].
+`access_token`<br>*optional*          |         | You can optionally set your own access token value, otherwise a random string will be generated.
+`refresh_token`<br>*optional*         |         | You can optionally set your own refresh token value, otherwise a random string will be generated.
+`expires_in`                          |         | The expiration time (in seconds) of the access token.
+`scope`<br>*optional*                 |         | The authorized scope associated with the token.
+`authenticated_userid`<br>*optional*  |         | The custom ID of the user who authorized the application.
 
 ## Upstream Headers
 
@@ -148,7 +151,7 @@ You can use this information on your side to implement additional logic. You can
 
 ----
 
-## oAuth 2.0 Flows
+## OAuth 2.0 Flows
 
 ## Client Credentials
 
@@ -176,7 +179,7 @@ The authorization page is made of two parts:
   </div>
 </div>
 
-A diagram repreenting this flow:
+A diagram representing this flow:
 
 <div class="alert alert-info">
   <a title="OAuth 2.0 Flow" href="/assets/images/docs/oauth2/oauth2-flow.png" target="_blank"><img src="/assets/images/docs/oauth2/oauth2-flow.png"/></a>
@@ -267,7 +270,21 @@ In this flow, the steps that you need to implement are:
 
 * The backend endpoint that will process the original request and will authenticate the `username` and `password` values sent by the client, and if the authentication is successful, make the request to Kong and return back to the client whatever response Kong has sent back.
 
-[ssl-plugin]: /plugins/ssl/
+----
+
+## Refresh Token
+
+When your access token expires, you can generate a new access token using the refresh token you received in conjunction to your expired access token.
+
+```bash
+$ curl -X POST https://your.api.com/oauth2/token \
+    --data "grant_type=refresh_token" \
+    --data "client_id=XXX" \
+    --data "client_secret=XXX" \
+    --data "refresh_token=XXX"
+```
+
+[ssl-plugin]: /plugins/dynamic-ssl/
 [api-object]: /docs/latest/admin-api/#api-object
 [configuration]: /docs/latest/configuration
 [consumer-object]: /docs/latest/admin-api/#consumer-object

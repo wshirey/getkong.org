@@ -38,15 +38,35 @@ Configuring the plugin is straightforward, you can add it on top of an [API][api
 ```bash
 $ curl -X POST http://kong:8001/apis/{api}/plugins \
     --data "name=key-auth"
+HTTP/1.1 201 Created
+
+{
+    "api_id": "d87d0e23-a1c1-4981-9989-84ee9a1a0781",
+    "id": "5bde4bc6-c27b-44a2-bcfd-5352c3bb29a1",
+    "created_at": 1472604757000,
+    "enabled": true,
+    "name": "key-auth",
+    "config": {
+        "key_names": ["apikey"],
+        "hide_credentials":false
+    }
+}
 ```
 
 `api`: The `id` or `name` of the API that this plugin configuration will target
 
-form parameter                          | description
----                                     | ---
-`name`                                  | The name of the plugin to use, in this case: `key-auth`
-`config.key_names`<br>*optional*        | Default: `apikey`. Describes an array of comma separated parameter names where the plugin will look for a key. The client must send the authentication key in one of those key names, and the plugin will try to read the credential from a header or the querystring parameter with the same name.
-`config.hide_credentials`<br>*optional* | Default `false`. An optional boolean value telling the plugin to hide the credential to the upstream API server. It will be removed by Kong before proxying the request
+You can also apply it for every API using the `http://kong:8001/plugins/` endpoint. Read the [Plugin Reference](/docs/latest/admin-api/#add-plugin) for more information.
+
+Once applied, any user with a valid credential can access the service/API.
+To restrict usage to only some of the authenticated users, also add the
+[ACL](/plugins/acl/) plugin (not covered here) and create whitelist or
+blacklist groups of users.
+
+form parameter                   | default | description
+---                              | ---     | ---               
+`name`                           |         | The name of the plugin to use, in this case: `key-auth`.
+`config.key_names`<br>*optional* | `apikey`| Describes an array of comma separated parameter names where the plugin will look for a key. The client must send the authentication key in one of those key names, and the plugin will try to read the credential from a header or the querystring parameter with the same name.
+`config.hide_credentials`<br>*optional* | `false` | An optional boolean value telling the plugin to hide the credential to the upstream API server. It will be removed by Kong before proxying the request.
 
 ----
 
@@ -63,21 +83,32 @@ $ curl -X POST http://kong:8001/consumers/ \
     --data "username=<USERNAME>" \
     --data "custom_id=<CUSTOM_ID>"
 HTTP/1.1 201 Created
+
+{
+    "username":"<USERNAME>",
+    "custom_id": "<CUSTOM_ID>",
+    "created_at": 1472604384000,
+    "id": "7f853474-7b70-439d-ad59-2481a0a9a904"
+}
 ```
 
-parameter                      | description
----                            | ---
-`username`<br>*semi-optional*  | The username of the Consumer. Either this field or `custom_id` must be specified.
-`custom_id`<br>*semi-optional* | A custom identifier used to map the Consumer to another database. Either this field or `username` must be specified.
+parameter                      | default | description
+---                            | ---     | ---
+`username`<br>*semi-optional*  |         | The username of the Consumer. Either this field or `custom_id` must be specified.
+`custom_id`<br>*semi-optional* |         | A custom identifier used to map the Consumer to another database. Either this field or `username` must be specified.
 
 A [Consumer][consumer-object] can have many credentials.
+
+If you are also using the [ACL](/plugins/acl/) plugin and whitelists with this
+service, you must add the new consumer to a whitelisted group. See
+[ACL: Associating Consumers][acl-associating] for details.
 
 ### Create an API Key
 
 You can provision new credentials by making the following HTTP request:
 
 ```bash
-$ curl -X POST http://kong:8001/consumers/{consumer}/key-auth
+$ curl -X POST http://kong:8001/consumers/{consumer}/key-auth -d ''
 HTTP/1.1 201 Created
 
 {
@@ -90,12 +121,12 @@ HTTP/1.1 201 Created
 
 `consumer`: The `id` or `username` property of the [Consumer][consumer-object] entity to associate the credentials to.
 
-form parameter      | description
----                 | ---
-`key`<br>*optional* | You can optionally set your own unique `key` to authenticate the client. If missing, the plugin will generate one.
+form parameter      | default | description
+---                 | ---     | ---
+`key`<br>*optional* |         | You can optionally set your own unique `key` to authenticate the client. If missing, the plugin will generate one.
 
 <div class="alert alert-warning">
-  <strong>Note:</strong> It is recommended to let Kong auto-generate the key. Only specify it yourself if you are migrating an existing system to Kong, and must re-use your keys to make the migration to Kong transparent to your consumers.
+  <strong>Note:</strong> It is recommended to let Kong auto-generate the key. Only specify it yourself if you are migrating an existing system to Kong. You must re-use your keys to make the migration to Kong transparent to your Consumers.
 </div>
 
 ### Using the API Key
@@ -126,4 +157,5 @@ You can use this information on your side to implement additional logic. You can
 [api-object]: /docs/latest/admin-api/#api-object
 [configuration]: /docs/latest/configuration
 [consumer-object]: /docs/latest/admin-api/#consumer-object
+[acl-associating]: /plugins/acl/#associating-consumers
 [faq-authentication]: /about/faq/#how-can-i-add-an-authentication-layer-on-a-microservice/api?

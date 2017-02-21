@@ -14,6 +14,7 @@ header_title: Frequently Asked Questions
 * [What are plugins?](#what-are-plugins)
 * [How many microservices/APIs can I add on Kong?](#how-many-microservices-apis-can-i-add-on-kong)
 * [How can I add authentication to a microservice/API?](#how-can-i-add-authentication-to-a-microservice-api)
+* [How can I migrate to Kong from another API Gateway?](#how-can-i-migrate-to-kong-from-another-api-gateway)
 * [Where can I get help?](#where-can-i-get-help)
 
 ----
@@ -63,12 +64,12 @@ disable plugins, and a handful of other operations. Since you will be using
 this RESTful API to operate Kong, it is also extremely easy to integrate Kong
 with existing systems.
 
-[proxy_listen]: /docs/{{page.kong_version}}/configuration/#proxy_listen
-[cluster_listen]: /docs/{{page.kong_version}}/configuration/#cluster_listen
+[proxy_listen]: /docs/latest/configuration/#proxy_listen
+[cluster_listen]: /docs/latest/configuration/#cluster_listen
 [cluster_listen_rpc]:
-/docs/{{page.kong_version}}/configuration/#cluster_listen_rpc
-[proxy_listen_ssl]: /docs/{{page.kong_version}}/configuration/#proxy_listen_ssl
-[admin_api_listen]: /docs/{{page.kong_version}}/configuration/#admin_api_listen
+/docs/latest/configuration/#cluster_listen_rpc
+[proxy_listen_ssl]: /docs/latest/configuration/#proxy_listen_ssl
+[admin_api_listen]: /docs/latest/configuration/#admin_api_listen
 
 ### Kong datastore
 
@@ -188,7 +189,7 @@ implemented in a dedicated plugin that is run on every request targetting that
 given API.
 
 Feel free to explore the [Plugins Gallery](/plugins) and the [Plugin
-development guide](/docs/{{page.kong_version}}/plugin-development). Learn how
+development guide](/docs/latest/plugin-development). Learn how
 to [enable plugins](/docs/latest/getting-started/enabling-plugins) with the
 [plugin configuration
 API](/docs/latest/admin-api/#plugin-configuration-object).
@@ -215,6 +216,32 @@ like the [Basic Authentication](/plugins/basic-authentication/), [Key
 Authentication](/plugins/key-authentication/) and [OAuth
 2.0](/plugins/oauth2-authentication/) plugins.
 
+To restrict usage of a service to only some of the authenticated users, add the
+[ACL](/plugins/acl/) plugin and create whitelist or blacklist groups of users.
+
+----
+
+## How can I migrate to Kong from another API Gateway?
+
+In case you are already using an existing API Gateway and thinking to migrate
+to Kong, you will need to take in considerations two steps:
+
+1) Migrate the data. Kong offers a RESTful API that you can use to migrate data
+from an existing API Gateway into Kong. Some API Gateways allow to export your
+data in either JSON or CSV files, among other methods. You will need to write
+a script that reads the exported data and then triggers the appropriate requests
+to Kong to provision APIs, Consumers and Plugins.
+
+2) Migrate the network settings. Once the data has been migrated and Kong has
+been configured, you will need to check in a staging environment that everything
+works well. Once you are ready to switch your users into Production over Kong, 
+you will then need to adjust your network settings so point to your Kong cluster
+(most likely by updating the DNS configuration).
+
+If you are a 
+[Mashape Enterprise](https://www.mashape.com/enterprise/) customer we can help
+with the migration.
+
 ----
 
 ## Where can I get help?
@@ -226,6 +253,9 @@ Gitter](https://gitter.im/Mashape/kong). We are also on Freenode at
 
 You can also have a face-to-face talk with us at one of our
 [meetups](http://www.meetup.com/The-Mashape-API-Developer-Community).
+
+[Mashape Enterprise](https://www.mashape.com/enterprise/) is our Enterprise
+Subscription that offers 24/7 Support SLAs among other features.
 
 <hr>
 

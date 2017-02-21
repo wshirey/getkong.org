@@ -16,23 +16,38 @@ Start by downloading the corresponding package for your configuration:
 - [15.04 Vivid]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.vivid_all.deb)
 - [16.04 Xenial]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.xenial_all.deb)
 
+### APT Repositories
+
+You can also install Kong by using the following APT repositories and following the Bintray instructions:
+
+- [12.04 Precise APT](https://bintray.com/mashape/kong-ubuntu-precise-{{site.data.kong_latest.release}})
+- [14.04 Trusty APT](https://bintray.com/mashape/kong-ubuntu-trusty-{{site.data.kong_latest.release}})
+- [15.04 Vivid APT](https://bintray.com/mashape/kong-ubuntu-vivid-{{site.data.kong_latest.release}})
+- [16.04 Xenial APT](https://bintray.com/mashape/kong-ubuntu-xenial-{{site.data.kong_latest.release}})
+
 ----
 
 ### Installation:
 
 1. **Install the Package:**
 
-    After downloading the [package](#packages), execute:
+    If you are downloading the [package](#packages), execute:
 
     ```bash
     $ sudo apt-get update
-    $ sudo apt-get install netcat openssl libpcre3 dnsmasq procps
+    $ sudo apt-get install netcat openssl libpcre3 dnsmasq procps perl
     $ sudo dpkg -i kong-{{site.data.kong_latest.version}}.*.deb
     ```
 
 2. **Configure your database**
 
     [Configure][configuration] Kong so it can connect to your database. Kong supports both [PostgreSQL {{site.data.kong_latest.dependencies.postgres}}](http://www.postgresql.org/) and [Cassandra {{site.data.kong_latest.dependencies.cassandra}}](http://cassandra.apache.org/) as its datastore.
+
+    If you are using Postgres, please provision a database and a user before starting Kong, ie:
+
+    ```sql
+    CREATE USER kong; CREATE DATABASE kong OWNER kong;
+    ```
 
 3. **Start Kong:**
 

@@ -13,9 +13,15 @@ breadcrumbs:
 
 Start by downloading the corresponding package for your configuration:
 
-- [RHEL 5]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.el5.noarch.rpm)
 - [RHEL 6]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.el6.noarch.rpm)
 - [RHEL 7]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.el7.noarch.rpm)
+
+### YUM Repositories
+
+You can also install Kong by using the following YUM repositories and following the Bintray instructions:
+
+- [RHEL 6 YUM](https://bintray.com/mashape/kong-rpm-el6-{{site.data.kong_latest.release}})
+- [RHEL 7 YUM](https://bintray.com/mashape/kong-rpm-el7-{{site.data.kong_latest.release}})
 
 ----
 
@@ -32,7 +38,7 @@ Start by downloading the corresponding package for your configuration:
 
 2. **Install the Package:**
 
-    After downloading the [package](#packages), execute:
+    If you are downloading the [package](#packages), execute:
 
     ```bash
     $ sudo yum install kong-{{site.data.kong_latest.version}}.*.noarch.rpm --nogpgcheck
@@ -41,6 +47,12 @@ Start by downloading the corresponding package for your configuration:
 3. **Configure your database**
 
     [Configure][configuration] Kong so it can connect to your database. Kong supports both [PostgreSQL {{site.data.kong_latest.dependencies.postgres}}](http://www.postgresql.org/) and [Cassandra {{site.data.kong_latest.dependencies.cassandra}}](http://cassandra.apache.org/) as its datastore.
+
+    If you are using Postgres, please provision a database and a user before starting Kong, ie:
+
+    ```sql
+    CREATE USER kong; CREATE DATABASE kong OWNER kong;
+    ```
 
 4. **Start Kong:**
 

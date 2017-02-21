@@ -11,8 +11,15 @@ breadcrumbs:
 
 Start by downloading the corresponding package for your configuration:
 
-- [Debian 7 Wheezy]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.wheezy_all.deb)
-- [Debian 8 Jessie]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.jessie_all.deb)
+- [7 Wheezy]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.wheezy_all.deb)
+- [8 Jessie]({{ site.links.download }}/{{site.data.kong_latest.version}}/kong-{{site.data.kong_latest.version}}.jessie_all.deb)
+
+### APT Repositories
+
+You can also install Kong by using the following APT repositories and following the Bintray instructions:
+
+- [7 Wheezy APT](https://bintray.com/mashape/kong-debian-wheezy-{{site.data.kong_latest.release}})
+- [8 Jessie APT](https://bintray.com/mashape/kong-debian-jessie-{{site.data.kong_latest.release}})
 
 ----
 
@@ -20,17 +27,23 @@ Start by downloading the corresponding package for your configuration:
 
 1. **Install the Package:**
 
-    After downloading the [package](#packages), execute:
+    If you are downloading the [package](#packages), execute:
 
     ```bash
     $ sudo apt-get update
-    $ sudo apt-get install netcat openssl libpcre3 dnsmasq procps
+    $ sudo apt-get install netcat openssl libpcre3 dnsmasq procps perl
     $ sudo dpkg -i kong-{{site.data.kong_latest.version}}.*.deb
     ```
 
 2. **Configure your database**
 
     [Configure][configuration] Kong so it can connect to your database. Kong supports both [PostgreSQL {{site.data.kong_latest.dependencies.postgres}}](http://www.postgresql.org/) and [Cassandra {{site.data.kong_latest.dependencies.cassandra}}](http://cassandra.apache.org/) as its datastore.
+
+    If you are using Postgres, please provision a database and a user before starting Kong, ie:
+
+    ```sql
+    CREATE USER kong; CREATE DATABASE kong OWNER kong;
+    ```
 
 3. **Start Kong:**
 
